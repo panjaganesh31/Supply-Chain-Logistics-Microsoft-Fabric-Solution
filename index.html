@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Samsung Supply Chain Analytics — Microsoft Fabric Portfolio | Ganesh Panja</title>
+  <meta name="description" content="End-to-end supply chain analytics solution built on Microsoft Fabric — Lakehouse, Dataflow Gen2, Power BI, DAX, Parquet. By Ganesh Panja." />
+
+  <!-- Open Graph / social card -->
+  <meta property="og:title" content="Samsung Supply Chain Analytics — Microsoft Fabric" />
+  <meta property="og:description" content="Lakehouse + Dataflow Gen2 + Power BI. 10 tables, ~24K records, 5-page executive dashboard." />
+  <meta property="og:type" content="website" />
+
+  <!-- Fonts: distinctive, editorial pairing -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ---------- Tokens ---------- */
+    :root {
+      --bg: #0a0a0a;
+      --bg-elev: #121212;
+      --bg-card: #161616;
+      --text: #f4ede4;
+      --text-muted: #8a8074;
+      --text-faint: #4a4640;
+      --accent: #d4a017;
+      --accent-soft: rgba(212, 160, 23, 0.12);
+      --accent-line: rgba(212, 160, 23, 0.3);
+      --terra: #c4754a;
+      --line: rgba(244, 237, 228, 0.08);
+      --line-strong: rgba(244, 237, 228, 0.18);
+
+      --serif: 'Fraunces', 'Times New Roman', serif;
+      --sans: 'IBM Plex Sans', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --maxw: 1240px;
+    }
+
+    /* ---------- Reset ---------- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+
+    /* ---------- Grain overlay ---------- */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.4;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
+    }
+
+    /* ---------- Layout ---------- */
+    .container {
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 0 32px;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ---------- Navigation ---------- */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 20px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      background: rgba(10, 10, 10, 0.6);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.3s var(--ease);
+    }
+    nav.scrolled { border-bottom-color: var(--line); }
+    .brand {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .brand span { color: var(--accent); }
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      transition: color 0.2s var(--ease);
+    }
+    .nav-links a:hover { color: var(--text); }
+    @media (max-width: 720px) { .nav-links { display: none; } }
+
+    /* ---------- Ticker ---------- */
+    .ticker {
+      margin-top: 64px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      overflow: hidden;
+      background: var(--bg-elev);
+      position: relative;
+      z-index: 2;
+    }
+    .ticker-track {
+      display: flex;
+      gap: 64px;
+      padding: 14px 0;
+      animation: ticker 60s linear infinite;
+      white-space: nowrap;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      width: max-content;
+    }
+    .ticker-item { display: inline-flex; align-items: center; gap: 12px; }
+    .ticker-item .dot { color: var(--accent); }
+    .ticker-item strong { color: var(--text); font-weight: 500; }
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* ---------- Hero ---------- */
+    .hero {
+      padding: 100px 0 80px;
+      position: relative;
+    }
+    .hero-grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 80px 80px;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+      animation: gridShift 20s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes gridShift {
+      from { background-position: 0 0, 0 0; }
+      to   { background-position: 80px 80px, 80px 80px; }
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 32px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    h1.hero-title {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(48px, 7vw, 96px);
+      line-height: 0.98;
+      letter-spacing: -0.03em;
+      margin-bottom: 32px;
+      max-width: 16ch;
+    }
+    h1.hero-title em {
+      font-style: italic;
+      color: var(--accent);
+      font-weight: 300;
+    }
+
+    .hero-lede {
+      font-family: var(--serif);
+      font-size: clamp(18px, 1.6vw, 22px);
+      line-height: 1.5;
+      max-width: 60ch;
+      color: var(--text);
+      opacity: 0.85;
+      margin-bottom: 48px;
+      font-weight: 300;
+    }
+
+    .hero-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 24px;
+      padding: 24px 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 48px;
+    }
+    .meta-item .label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 8px;
+    }
+    .meta-item .value {
+      font-family: var(--serif);
+      font-size: 18px;
+      color: var(--text);
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 24px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: 1px solid var(--line-strong);
+      color: var(--text);
+      transition: all 0.3s var(--ease);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg);
+      font-weight: 500;
+    }
+    .btn.primary:hover {
+      background: transparent;
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .btn:not(.primary):hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .btn svg { width: 14px; height: 14px; }
+
+    /* ---------- Sections ---------- */
+    section {
+      padding: 100px 0;
+      position: relative;
+      z-index: 2;
+      border-top: 1px solid var(--line);
+    }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-label::before {
+      content: counter(section-counter, decimal-leading-zero);
+      color: var(--accent);
+    }
+    body { counter-reset: section-counter; }
+    section { counter-increment: section-counter; }
+
+    h2 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(36px, 4.5vw, 56px);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-bottom: 48px;
+      max-width: 22ch;
+    }
+    h2 em { font-style: italic; color: var(--accent); font-weight: 300; }
+
+    .lede {
+      font-family: var(--serif);
+      font-size: 20px;
+      line-height: 1.55;
+      max-width: 60ch;
+      color: var(--text);
+      opacity: 0.88;
+      margin-bottom: 40px;
+      font-weight: 300;
+    }
+
+    /* ---------- Dashboard preview ---------- */
+    .dashboard-wrap {
+      margin-top: 64px;
+      border: 1px solid var(--line);
+      background: var(--bg-elev);
+      padding: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .dashboard-wrap::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--accent-soft), transparent);
+      animation: shimmer 6s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes shimmer {
+      0%, 100% { left: -100%; }
+      50% { left: 200%; }
+    }
+    .dashboard-wrap img { width: 100%; }
+    .dashboard-placeholder {
+      aspect-ratio: 16 / 9;
+      background:
+        linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      position: relative;
+    }
+    .dashboard-placeholder::after {
+      content: '';
+      position: absolute;
+      inset: 20px;
+      border: 1px dashed var(--line-strong);
+    }
+
+    /* ---------- KPI grid ---------- */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      margin-top: 48px;
+    }
+    .kpi {
+      background: var(--bg);
+      padding: 32px 28px;
+      transition: background 0.3s var(--ease);
+    }
+    .kpi:hover { background: var(--bg-elev); }
+    .kpi .kpi-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 16px;
+    }
+    .kpi .kpi-value {
+      font-family: var(--serif);
+      font-size: 44px;
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .kpi .kpi-value .unit {
+      font-size: 22px;
+      color: var(--accent);
+      margin-left: 2px;
+    }
+    .kpi .kpi-meaning {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ---------- Architecture (animated) ---------- */
+    .arch-wrap {
+      margin-top: 48px;
+      padding: 48px;
+      background: var(--bg-elev);
+      border: 1px solid var(--line);
+      overflow-x: auto;
+    }
+    .arch-svg { width: 100%; min-width: 600px; height: auto; }
+    .arch-flow {
+      stroke-dasharray: 4 4;
+      animation: dash 1.5s linear infinite;
+    }
+    @keyframes dash {
+      to { stroke-dashoffset: -16; }
+    }
+    .arch-node rect {
+      transition: fill 0.3s var(--ease);
+    }
+    .arch-node:hover rect { fill: var(--accent-soft); }
+    .pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; r: 4; }
+      50% { opacity: 1; r: 6; }
+    }
+
+    /* ---------- Tech stack ---------- */
+    .stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 32px;
+    }
+    .tech {
+      padding: 10px 16px;
+      border: 1px solid var(--line-strong);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text);
+      transition: all 0.25s var(--ease);
+      cursor: default;
+    }
+    .tech:hover {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    /* ---------- Skills columns ---------- */
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 48px;
+      margin-top: 48px;
+    }
+    .skill-col h3 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: 22px;
+      margin-bottom: 20px;
+      color: var(--accent);
+      font-style: italic;
+    }
+    .skill-col ul { list-style: none; }
+    .skill-col li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+      opacity: 0.85;
+    }
+    .skill-col li:last-child { border-bottom: none; }
+
+    /* ---------- Insights ---------- */
+    .insights {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 48px;
+    }
+    .insight {
+      padding: 32px 28px;
+      background: var(--bg-elev);
+      border-left: 2px solid var(--accent);
+      transition: transform 0.3s var(--ease);
+    }
+    .insight:hover { transform: translateX(4px); }
+    .insight .insight-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .insight p {
+      font-family: var(--serif);
+      font-size: 16px;
+      line-height: 1.55;
+      font-weight: 300;
+    }
+    .insight strong { color: var(--accent); font-weight: 500; }
+
+    /* ---------- Tradeoffs table ---------- */
+    .tradeoffs {
+      margin-top: 48px;
+      border-top: 1px solid var(--line);
+    }
+    .tradeoff {
+      display: grid;
+      grid-template-columns: 1fr 2fr 2fr;
+      gap: 32px;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--line);
+      align-items: start;
+    }
+    .tradeoff h4 {
+      font-family: var(--serif);
+      font-weight: 500;
+      font-size: 18px;
+      color: var(--accent);
+      font-style: italic;
+    }
+    .tradeoff p {
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--text);
+      opacity: 0.88;
+    }
+    .tradeoff .label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 8px;
+    }
+    @media (max-width: 720px) {
+      .tradeoff { grid-template-columns: 1fr; gap: 12px; }
+    }
+
+    /* ---------- Learnings ---------- */
+    .learnings {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      margin-top: 48px;
+    }
+    .learning {
+      background: var(--bg);
+      padding: 36px 32px;
+    }
+    .learning .num {
+      font-family: var(--serif);
+      font-size: 48px;
+      font-weight: 300;
+      font-style: italic;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+    .learning h4 {
+      font-family: var(--serif);
+      font-weight: 500;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+    .learning p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* ---------- Roadmap ---------- */
+    .roadmap {
+      margin-top: 48px;
+      display: grid;
+      gap: 16px;
+    }
+    .road-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 24px;
+      padding: 20px 24px;
+      background: var(--bg-elev);
+      border: 1px solid var(--line);
+      align-items: center;
+      transition: all 0.3s var(--ease);
+    }
+    .road-item:hover {
+      border-color: var(--accent-line);
+      background: var(--bg-card);
+    }
+    .road-item .marker {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent-soft);
+    }
+    .road-item .desc {
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 400;
+    }
+    .road-item .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    /* ---------- Footer ---------- */
+    footer {
+      padding: 100px 0 60px;
+      border-top: 1px solid var(--line);
+      position: relative;
+      z-index: 2;
+    }
+    .footer-cta {
+      font-family: var(--serif);
+      font-size: clamp(40px, 6vw, 80px);
+      line-height: 1;
+      letter-spacing: -0.02em;
+      margin-bottom: 48px;
+      font-weight: 300;
+    }
+    .footer-cta em { font-style: italic; color: var(--accent); }
+    .footer-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+      margin-bottom: 64px;
+    }
+    .footer-link {
+      padding: 24px;
+      border: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.3s var(--ease);
+      cursor: pointer;
+    }
+    .footer-link:hover {
+      border-color: var(--accent);
+      background: var(--bg-elev);
+      transform: translateY(-4px);
+    }
+    .footer-link .platform {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    .footer-link .handle {
+      font-family: var(--serif);
+      font-size: 22px;
+      font-style: italic;
+      color: var(--text);
+    }
+    .footer-link:hover .handle { color: var(--accent); }
+    .footer-meta {
+      display: flex;
+      justify-content: space-between;
+      padding-top: 32px;
+      border-top: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    /* ---------- Scroll reveal ---------- */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 1s var(--ease), transform 1s var(--ease);
+    }
+    .reveal.in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal.delay-1 { transition-delay: 0.1s; }
+    .reveal.delay-2 { transition-delay: 0.2s; }
+    .reveal.delay-3 { transition-delay: 0.3s; }
+    .reveal.delay-4 { transition-delay: 0.4s; }
+
+    /* ---------- Hero load animation ---------- */
+    .hero .reveal-load {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: rise 1.2s var(--ease) forwards;
+    }
+    .hero .reveal-load.d1 { animation-delay: 0.1s; }
+    .hero .reveal-load.d2 { animation-delay: 0.25s; }
+    .hero .reveal-load.d3 { animation-delay: 0.4s; }
+    .hero .reveal-load.d4 { animation-delay: 0.55s; }
+    .hero .reveal-load.d5 { animation-delay: 0.7s; }
+    @keyframes rise {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <div class="brand">GP <span>/</span> Fabric Portfolio</div>
+    <div class="nav-links">
+      <a href="#problem">Problem</a>
+      <a href="#build">Build</a>
+      <a href="#stack">Stack</a>
+      <a href="#insights">Insights</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </nav>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-track">
+      <span class="ticker-item"><span class="dot">●</span> Live Project <strong>Supply Chain Fabric</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Records <strong>24,052</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Tables <strong>10</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Pages <strong>5</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Refresh <strong>Automated</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Format <strong>Parquet</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Engine <strong>Microsoft Fabric</strong></span>
+      <!-- duplicate for seamless loop -->
+      <span class="ticker-item"><span class="dot">●</span> Live Project <strong>Supply Chain Fabric</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Records <strong>24,052</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Tables <strong>10</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Pages <strong>5</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Refresh <strong>Automated</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Format <strong>Parquet</strong></span>
+      <span class="ticker-item"><span class="dot">●</span> Engine <strong>Microsoft Fabric</strong></span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-grid-bg"></div>
+    <div class="container">
+      <div class="eyebrow reveal-load d1">Case Study · Microsoft Fabric · 2026</div>
+      <h1 class="hero-title reveal-load d2">
+        Supply chain, <em>made legible</em> — from supplier to shipment.
+      </h1>
+      <p class="hero-lede reveal-load d3">
+        A simulated Samsung supply chain operation reassembled into a single
+        analytics layer on Microsoft Fabric. Lakehouse, Dataflow Gen2, scheduled
+        pipelines, a star-schema semantic model, and a five-page executive
+        dashboard — all version-controlled, all automated.
+      </p>
+
+      <div class="hero-meta reveal-load d4">
+        <div class="meta-item">
+          <div class="label">Role</div>
+          <div class="value">Solo build · End-to-end</div>
+        </div>
+        <div class="meta-item">
+          <div class="label">Stack</div>
+          <div class="value">Fabric · Power BI · DAX</div>
+        </div>
+        <div class="meta-item">
+          <div class="label">Records</div>
+          <div class="value">24,052 across 10 tables</div>
+        </div>
+        <div class="meta-item">
+          <div class="label">Domain</div>
+          <div class="value">Supply Chain & Logistics</div>
+        </div>
+      </div>
+
+      <div class="cta-row reveal-load d5">
+        <a href="https://github.com/panjaganesh31/supply-chain" target="_blank" rel="noopener" class="btn primary">
+          View on GitHub
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+        <a href="#dashboard" class="btn">See Dashboard</a>
+        <a href="https://linkedin.com/in/ganesh-panja59/" target="_blank" rel="noopener" class="btn">LinkedIn</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- PROBLEM -->
+  <section id="problem">
+    <div class="container">
+      <div class="section-label reveal">The Brief</div>
+      <h2 class="reveal delay-1">A manufacturer's data <em>lives in five systems</em>. Executives need one view.</h2>
+      <p class="lede reveal delay-2">
+        Global manufacturers run on fragmented stacks: ERP for procurement, MES for production,
+        WMS for inventory, CRM for sales, TMS for shipment. The cost is not technical — it's
+        epistemic. Leaders cannot answer cross-functional questions in time to act on them.
+      </p>
+      <p class="lede reveal delay-3">
+        <em>Are we profitable on the customers we ship most to? Which suppliers cause our worst
+        delays? Are inventory levels aligned with safety stock?</em> This project simulates that
+        problem for a Samsung-scale operation and builds the analytics layer that answers those
+        questions in seconds, not days.
+      </p>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard">
+    <div class="container">
+      <div class="section-label reveal">The Dashboard</div>
+      <h2 class="reveal delay-1">Five pages. <em>Ten KPIs</em>. One narrative.</h2>
+      <p class="lede reveal delay-2">
+        Overview surfaces the executive summary. Supplier, Inventory, Shipment, and Customer
+        pages let leaders drill into the question that's actually on their mind today.
+      </p>
+      <div class="dashboard-wrap reveal delay-3">
+        <img src="Supply_Chain_Dashboard.png" alt="Supply Chain Dashboard"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+        <div class="dashboard-placeholder" style="display:none;">
+          [ Dashboard Screenshot — Supply_Chain_Dashboard.png ]
+        </div>
+      </div>
+
+      <div class="kpi-grid reveal delay-4">
+        <div class="kpi">
+          <div class="kpi-label">Gross Revenue</div>
+          <div class="kpi-value" data-count="186.86" data-decimals="2"><span class="num">0</span><span class="unit">M</span></div>
+          <div class="kpi-meaning">Top-line before discounts and returns</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Total Profit</div>
+          <div class="kpi-value" data-count="48.56" data-decimals="2"><span class="num">0</span><span class="unit">M</span></div>
+          <div class="kpi-meaning">Bottom-line contribution</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Profit Margin</div>
+          <div class="kpi-value" data-count="27.44" data-decimals="2"><span class="num">0</span><span class="unit">%</span></div>
+          <div class="kpi-meaning">Operational efficiency</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Perfect Order</div>
+          <div class="kpi-value" data-count="75.29" data-decimals="2"><span class="num">0</span><span class="unit">%</span></div>
+          <div class="kpi-meaning">Supply chain reliability</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Total Shipments</div>
+          <div class="kpi-value" data-count="7500" data-decimals="0"><span class="num">0</span></div>
+          <div class="kpi-meaning">Outbound logistics volume</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Order Quantity</div>
+          <div class="kpi-value" data-count="129" data-decimals="0"><span class="num">0</span><span class="unit">K</span></div>
+          <div class="kpi-meaning">Demand throughput</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Inventory Value</div>
+          <div class="kpi-value" data-count="160" data-decimals="0"><span class="num">0</span><span class="unit">K</span></div>
+          <div class="kpi-meaning">Working capital tied in stock</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Delivered Quantity</div>
+          <div class="kpi-value" data-count="187.13" data-decimals="2"><span class="num">0</span><span class="unit">K</span></div>
+          <div class="kpi-meaning">Fulfillment completion</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BUILD / ARCHITECTURE -->
+  <section id="build">
+    <div class="container">
+      <div class="section-label reveal">How It's Built</div>
+      <h2 class="reveal delay-1">Bronze CSV in. <em>Silver Parquet out.</em> Pipeline-orchestrated.</h2>
+      <p class="lede reveal delay-2">
+        Raw CSVs land in the Lakehouse <code style="font-family:var(--mono);color:var(--accent);font-size:0.9em;">/Files</code>
+        zone (Bronze). A Dataflow Gen2 cleans, types, and writes curated Parquet to
+        <code style="font-family:var(--mono);color:var(--accent);font-size:0.9em;">/Tables</code> (Silver). A pipeline guarantees the
+        semantic model never refreshes against stale data.
+      </p>
+
+      <div class="arch-wrap reveal delay-3">
+        <svg class="arch-svg" viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#d4a017"/>
+            </marker>
+          </defs>
+
+          <!-- Nodes -->
+          <g class="arch-node">
+            <rect x="20" y="130" width="140" height="60" fill="none" stroke="#4a4640" stroke-width="1"/>
+            <text x="90" y="158" text-anchor="middle" fill="#f4ede4" font-family="IBM Plex Sans" font-size="13" font-weight="500">CSV Sources</text>
+            <text x="90" y="176" text-anchor="middle" fill="#8a8074" font-family="JetBrains Mono" font-size="10">10 files · Bronze</text>
+          </g>
+
+          <g class="arch-node">
+            <rect x="220" y="130" width="160" height="60" fill="none" stroke="#4a4640" stroke-width="1"/>
+            <text x="300" y="158" text-anchor="middle" fill="#f4ede4" font-family="IBM Plex Sans" font-size="13" font-weight="500">Dataflow Gen2</text>
+            <text x="300" y="176" text-anchor="middle" fill="#8a8074" font-family="JetBrains Mono" font-size="10">Power Query (M)</text>
+          </g>
+
+          <g class="arch-node">
+            <rect x="440" y="130" width="160" height="60" fill="none" stroke="#d4a017" stroke-width="1"/>
+            <text x="520" y="158" text-anchor="middle" fill="#f4ede4" font-family="IBM Plex Sans" font-size="13" font-weight="500">Lakehouse /Tables</text>
+            <text x="520" y="176" text-anchor="middle" fill="#d4a017" font-family="JetBrains Mono" font-size="10">Parquet · Silver</text>
+          </g>
+
+          <g class="arch-node">
+            <rect x="660" y="60" width="160" height="60" fill="none" stroke="#4a4640" stroke-width="1"/>
+            <text x="740" y="88" text-anchor="middle" fill="#f4ede4" font-family="IBM Plex Sans" font-size="13" font-weight="500">Semantic Model</text>
+            <text x="740" y="106" text-anchor="middle" fill="#8a8074" font-family="JetBrains Mono" font-size="10">DAX measures</text>
+          </g>
+
+          <g class="arch-node">
+            <rect x="660" y="200" width="160" height="60" fill="none" stroke="#4a4640" stroke-width="1"/>
+            <text x="740" y="228" text-anchor="middle" fill="#f4ede4" font-family="IBM Plex Sans" font-size="13" font-weight="500">Power BI Report</text>
+            <text x="740" y="246" text-anchor="middle" fill="#8a8074" font-family="JetBrains Mono" font-size="10">5 pages</text>
+          </g>
+
+          <!-- Pipeline label -->
+          <text x="450" y="30" text-anchor="middle" fill="#d4a017" font-family="JetBrains Mono" font-size="11" letter-spacing="2">SCHEDULED PIPELINE</text>
+          <line x1="200" y1="50" x2="700" y2="50" stroke="#d4a017" stroke-width="0.5" stroke-dasharray="2 2"/>
+
+          <!-- Flows -->
+          <line class="arch-flow" x1="160" y1="160" x2="220" y2="160" stroke="#d4a017" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line class="arch-flow" x1="380" y1="160" x2="440" y2="160" stroke="#d4a017" stroke-width="1.5" marker-end="url(#arr)"/>
+          <path class="arch-flow" d="M 600 150 Q 630 100 660 90" fill="none" stroke="#d4a017" stroke-width="1.5" marker-end="url(#arr)"/>
+          <path class="arch-flow" d="M 600 170 Q 630 220 660 230" fill="none" stroke="#d4a017" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <!-- Pulse dots -->
+          <circle class="pulse" cx="190" cy="160" r="4" fill="#d4a017"/>
+          <circle class="pulse" cx="410" cy="160" r="4" fill="#d4a017" style="animation-delay: 0.5s;"/>
+          <circle class="pulse" cx="630" cy="90" r="4" fill="#d4a017" style="animation-delay: 1s;"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECH STACK -->
+  <section id="stack">
+    <div class="container">
+      <div class="section-label reveal">The Stack</div>
+      <h2 class="reveal delay-1">Every tool, <em>chosen on purpose</em>.</h2>
+      <div class="stack reveal delay-2">
+        <div class="tech">Microsoft Fabric</div>
+        <div class="tech">Lakehouse</div>
+        <div class="tech">Dataflow Gen2</div>
+        <div class="tech">Power Query (M)</div>
+        <div class="tech">Parquet</div>
+        <div class="tech">Semantic Model</div>
+        <div class="tech">DAX</div>
+        <div class="tech">Power BI</div>
+        <div class="tech">Data Pipelines</div>
+        <div class="tech">XMLA Endpoint</div>
+        <div class="tech">Git / GitHub</div>
+        <div class="tech">Star Schema</div>
+      </div>
+
+      <div class="skills-grid">
+        <div class="skill-col reveal delay-1">
+          <h3>Data Engineering</h3>
+          <ul>
+            <li>Lakehouse architecture on Microsoft Fabric</li>
+            <li>Medallion pattern — Bronze CSV → Silver Parquet</li>
+            <li>Dataflow Gen2 in Power Query (M language)</li>
+            <li>Fast Copy enabled for high-throughput ingestion</li>
+            <li>Scheduled pipelines with dependency ordering</li>
+          </ul>
+        </div>
+        <div class="skill-col reveal delay-2">
+          <h3>Data Modeling</h3>
+          <ul>
+            <li>Star schema with 5 dims + 5 facts</li>
+            <li>Grain discipline per fact table</li>
+            <li>Conformed dimensions across the value chain</li>
+            <li>DAX measures: margin, perfect-order, lead-time variance</li>
+            <li>XMLA semantic model deployment</li>
+          </ul>
+        </div>
+        <div class="skill-col reveal delay-3">
+          <h3>BI & Visualization</h3>
+          <ul>
+            <li>5-page executive Power BI dashboard</li>
+            <li>Cross-page filtering: Year · Month · Customer</li>
+            <li>Visual hierarchy and color discipline</li>
+            <li>Drill-down navigation across the supply chain</li>
+            <li>Consistent KPI cards across views</li>
+          </ul>
+        </div>
+        <div class="skill-col reveal delay-4">
+          <h3>Domain & DevOps</h3>
+          <ul>
+            <li>Supply chain KPIs: safety stock, perfect order, lead time</li>
+            <li>Carrier delay tracking & supplier tier analysis</li>
+            <li>Git-versioned Fabric assets</li>
+            <li>Reproducible import & deployment documentation</li>
+            <li>Scheduled refresh orchestration</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSIGHTS -->
+  <section id="insights">
+    <div class="container">
+      <div class="section-label reveal">What the Data Says</div>
+      <h2 class="reveal delay-1">The dashboard <em>finds things</em>. That's the point.</h2>
+      <p class="lede reveal delay-2">
+        A dashboard's value is in the questions it lets you answer, not the charts it draws.
+        These are the operational findings this solution surfaces — each one a quantifiable
+        target a real leader could act on.
+      </p>
+      <div class="insights">
+        <div class="insight reveal delay-1">
+          <div class="insight-num">Finding 01</div>
+          <p>Profit margin is a healthy <strong>27.44%</strong>, but the <strong>24.71% imperfect-order rate</strong> signals meaningful revenue leakage from delays, defects, or short shipments — a quantifiable improvement target.</p>
+        </div>
+        <div class="insight reveal delay-2">
+          <div class="insight-num">Finding 02</div>
+          <p>Inventory value of <strong>160K against 3M shipment quantity</strong> highlights inventory turnover efficiency — a leading indicator for working-capital optimization.</p>
+        </div>
+        <div class="insight reveal delay-3">
+          <div class="insight-num">Finding 03</div>
+          <p>Carrier-level delay tracking lets procurement <strong>renegotiate SLAs</strong> with underperforming carriers using evidence, not anecdote.</p>
+        </div>
+        <div class="insight reveal delay-1">
+          <div class="insight-num">Finding 04</div>
+          <p>Supplier lead-time variance exposes which <strong>Tier-1 vs Tier-2 suppliers</strong> are reliability risks for production planning.</p>
+        </div>
+        <div class="insight reveal delay-2">
+          <div class="insight-num">Finding 05</div>
+          <p>Channel-level revenue analysis enables sales leadership to prioritize the channels with the <strong>highest profit contribution</strong>, not just the highest top-line.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRADEOFFS -->
+  <section id="tradeoffs">
+    <div class="container">
+      <div class="section-label reveal">Design Decisions</div>
+      <h2 class="reveal delay-1">Every choice has <em>a counter-argument</em>.</h2>
+      <p class="lede reveal delay-2">
+        The interesting parts of a build are the trade-offs. Here's what I picked, why, and what
+        I gave up.
+      </p>
+
+      <div class="tradeoffs">
+        <div class="tradeoff reveal">
+          <div>
+            <div class="label">Decision</div>
+            <h4>Lakehouse over Warehouse</h4>
+          </div>
+          <div>
+            <div class="label">Why</div>
+            <p>Need both raw CSV (/Files) and structured tables (/Tables) in one place. Lower entry cost; ideal for a BI-first workload.</p>
+          </div>
+          <div>
+            <div class="label">Trade-off</div>
+            <p>Warehouse offers richer T-SQL DML. Not needed for read-heavy reporting at this scale.</p>
+          </div>
+        </div>
+
+        <div class="tradeoff reveal">
+          <div>
+            <div class="label">Decision</div>
+            <h4>Dataflow Gen2 over Notebooks</h4>
+          </div>
+          <div>
+            <div class="label">Why</div>
+            <p>Low-code Power Query is faster to author and maintain for tabular CSV ingestion at 24K rows.</p>
+          </div>
+          <div>
+            <div class="label">Trade-off</div>
+            <p>PySpark notebooks would scale further. Overkill at this volume.</p>
+          </div>
+        </div>
+
+        <div class="tradeoff reveal">
+          <div>
+            <div class="label">Decision</div>
+            <h4>Parquet output format</h4>
+          </div>
+          <div>
+            <div class="label">Why</div>
+            <p>Columnar compression dramatically speeds up DAX scans vs. row-based CSV.</p>
+          </div>
+          <div>
+            <div class="label">Trade-off</div>
+            <p>Slightly slower writes than CSV. Acceptable in exchange for read performance.</p>
+          </div>
+        </div>
+
+        <div class="tradeoff reveal">
+          <div>
+            <div class="label">Decision</div>
+            <h4>Pipeline orchestration</h4>
+          </div>
+          <div>
+            <div class="label">Why</div>
+            <p>Guarantees Dataflow finishes before the semantic model refreshes. Eliminates stale-data risk.</p>
+          </div>
+          <div>
+            <div class="label">Trade-off</div>
+            <p>Adds one orchestration layer to maintain. Worth it.</p>
+          </div>
+        </div>
+
+        <div class="tradeoff reveal">
+          <div>
+            <div class="label">Decision</div>
+            <h4>Star schema, not snowflake</h4>
+          </div>
+          <div>
+            <div class="label">Why</div>
+            <p>Simpler DAX, faster queries, easier for business users to read.</p>
+          </div>
+          <div>
+            <div class="label">Trade-off</div>
+            <p>Some attribute redundancy in dimensions. Acceptable at this scale.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEARNINGS -->
+  <section id="learnings">
+    <div class="container">
+      <div class="section-label reveal">What I Learned</div>
+      <h2 class="reveal delay-1">The build taught me <em>more than the brief</em>.</h2>
+      <div class="learnings">
+        <div class="learning reveal delay-1">
+          <div class="num">01</div>
+          <h4>Orchestration > transformation</h4>
+          <p>Building the Dataflow was straightforward. Getting the pipeline dependency order right was what made refresh reliable.</p>
+        </div>
+        <div class="learning reveal delay-2">
+          <div class="num">02</div>
+          <h4>Grain discipline compounds</h4>
+          <p>A clear per-fact-table grain definition upfront eliminated DAX double-counting bugs that would have hurt badly later.</p>
+        </div>
+        <div class="learning reveal delay-3">
+          <div class="num">03</div>
+          <h4>Format choice is a lever</h4>
+          <p>Switching curated output from CSV to Parquet measurably improved DAX scan times. A free win.</p>
+        </div>
+        <div class="learning reveal delay-4">
+          <div class="num">04</div>
+          <h4>Pages earn the value</h4>
+          <p>The Overview sells the story. The drill-down pages let executives answer the follow-up — which is what drives adoption.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section id="roadmap">
+    <div class="container">
+      <div class="section-label reveal">What's Next</div>
+      <h2 class="reveal delay-1">Roadmap if I <em>extended this</em>.</h2>
+      <div class="roadmap">
+        <div class="road-item reveal delay-1">
+          <span class="marker"></span>
+          <span class="desc">Real-time ingestion via Eventstream for shipment status updates</span>
+          <span class="tag">Streaming</span>
+        </div>
+        <div class="road-item reveal delay-2">
+          <span class="marker"></span>
+          <span class="desc">Anomaly detection on lead-time spikes using Fabric Data Science notebooks</span>
+          <span class="tag">ML</span>
+        </div>
+        <div class="road-item reveal delay-3">
+          <span class="marker"></span>
+          <span class="desc">Row-level security to scope dashboards by region / business unit</span>
+          <span class="tag">Security</span>
+        </div>
+        <div class="road-item reveal delay-4">
+          <span class="marker"></span>
+          <span class="desc">Incremental refresh on fact_sales and fact_shipment for scale</span>
+          <span class="tag">Performance</span>
+        </div>
+        <div class="road-item reveal delay-4">
+          <span class="marker"></span>
+          <span class="desc">Data Activator alerts when perfect-order rate drops below threshold</span>
+          <span class="tag">Alerting</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer id="contact">
+    <div class="container">
+      <div class="footer-cta reveal">
+        Looking for a <em>data engineer</em> who ships<br/>
+        end-to-end? <em>Let's talk.</em>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/panjaganesh31" target="_blank" rel="noopener" class="footer-link reveal delay-1">
+          <span class="platform">GitHub</span>
+          <span class="handle">@panjaganesh31</span>
+        </a>
+        <a href="https://linkedin.com/in/ganesh-panja59/" target="_blank" rel="noopener" class="footer-link reveal delay-2">
+          <span class="platform">LinkedIn</span>
+          <span class="handle">Ganesh Panja</span>
+        </a>
+        <!-- ⚠️ VERIFY EMAIL: Replace the address below with your real email if this guess is wrong -->
+        <a href="mailto:ganeshpanja59@gmail.com" class="footer-link reveal delay-3">
+          <span class="platform">Email</span>
+          <span class="handle">ganeshpanja59@gmail.com</span>
+        </a>
+        <a href="https://github.com/panjaganesh31/supply-chain" target="_blank" rel="noopener" class="footer-link reveal delay-4">
+          <span class="platform">Project Repo</span>
+          <span class="handle">supply-chain ↗</span>
+        </a>
+      </div>
+      <div class="footer-meta">
+        <div>© 2026 · Ganesh Panja</div>
+        <div>Built with Microsoft Fabric · Power BI</div>
+        <div>v1.0.0 · March 2026</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ---------- Nav scroll state ----------
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 24);
+    });
+
+    // ---------- Scroll reveal ----------
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+    // ---------- KPI counter animation ----------
+    const formatNum = (n, decimals) => {
+      const fixed = n.toFixed(decimals);
+      const [whole, dec] = fixed.split('.');
+      const withCommas = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return dec ? `${withCommas}.${dec}` : withCommas;
+    };
+
+    const animateCount = (el) => {
+      const target = parseFloat(el.dataset.count);
+      const decimals = parseInt(el.dataset.decimals || '0', 10);
+      const numEl = el.querySelector('.num');
+      const duration = 1800;
+      const start = performance.now();
+      const step = (t) => {
+        const p = Math.min((t - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        const current = target * eased;
+        numEl.textContent = formatNum(current, decimals);
+        if (p < 1) requestAnimationFrame(step);
+        else numEl.textContent = formatNum(target, decimals);
+      };
+      requestAnimationFrame(step);
+    };
+
+    const kpiObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          animateCount(e.target);
+          kpiObserver.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.4 });
+
+    document.querySelectorAll('.kpi-value[data-count]').forEach(el => kpiObserver.observe(el));
+  </script>
+</body>
+</html>
